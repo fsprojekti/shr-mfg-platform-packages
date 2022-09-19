@@ -1,0 +1,14 @@
+{
+  "db": "./db",
+  "tokenContractAddress": "0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735",
+  "web3_provider": "wss://rinkeby.infura.io/ws/v3/76e80eeb6cfb49109e5346df0e3698f9",
+  "admin": {
+    "private_key": "0xa923052f204550a093042381554e064c9ef8e52f42d655d33259875358504b03"
+  },
+  "packages":{
+    "duration_interval": [150 , 500],
+    "price_start_interval": [1, 10],
+    "price_increase_interval": [1, 5]
+  },
+  "manufacturersRegisterAddress":"0x21052339A7fE974eAA373D00ADCaB10498ac3400"
+}

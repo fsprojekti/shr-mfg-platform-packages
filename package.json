@@ -1,0 +1,21 @@
+{
+  "name": "boiler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.27.2",
+    "db-local": "^2.8.8",
+    "ethers": "^5.7.0",
+    "express": "^4.18.1",
+    "ipfs": "^0.63.5",
+    "ipfs-core": "^0.15.4",
+    "web3": "^1.7.5"
+  }
+}
