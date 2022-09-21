@@ -9,6 +9,8 @@ const Service = require("./models/Service");
 const Package = require("./models/Package");
 
 const servicePackage = require("./services/Package");
+const serviceService = require("./services/Service");
+const serviceOffer = require("./services/Offer");
 
 const express = require('express')
 const app = express()
@@ -138,7 +140,7 @@ app.get('/packages/transfer/eth', async (req, res) => {
 
 app.get('/packages/balance/tokens', async (req, res) => {
     let packages = Package.find();
-    let balances=[];
+    let balances = [];
     let tokenContract = new web3.eth.Contract(abiDAI, config.tokenContractAddress);
     for (let _package of packages) {
         balances.push({[_package.address]: await tokenContract.methods.balanceOf(_package.address).call()});
@@ -148,7 +150,7 @@ app.get('/packages/balance/tokens', async (req, res) => {
 
 app.get('/packages/balance/eth', async (req, res) => {
     let packages = Package.find();
-    let balances=[];
+    let balances = [];
     for (let _package of packages) {
         balances.push({[_package.address]: await web3.eth.getBalance(_package.address)});
     }
@@ -198,24 +200,69 @@ app.get('/package/services/new', async (req, res) => {
     let _package = Package.find({_id: req.query.id_package});
     if (!_package) return res.status(400).send("No package with the given id_package");
     //Reject if service is already in progress
-    if(servicePackage.isServiceActive(_package)) return res.status(400).send("Service is already in progress");
+    if (servicePackage.isServiceActive(_package)) return res.status(400).send("Service is already in progress");
     //Crete new service
     servicePackage.newService(_package);
 })
 
-//Game control
-app.get('/game/start', (req, res) => {
+
+app.get('/services/manage', (req, res) => {
     //Get packages
+    let message = {};
     let packages = Package.find();
-    //Activate packages
-    for(let _package of packages){
-        //Check if package has active service
-
+    for (let _package of packages) {
+        message[_package._id] = serviceService.manageServices(web3, _package);
     }
+    res.status(200).send(message);
+});
 
+app.get('/offers/manage/new', async (req, res) => {
+    let message = [];
+    let packages = Package.find();
+    for (let _package of packages) {
+        let services = Service.find({id_package: _package._id});
+        for (let service of services) {
+            message.push({
+                id_package: _package._id,
+                id_service: service._id,
+                msgs: await serviceOffer.manageOffersNew(web3, service)
+            })
+        }
+    }
+    res.status(200).send(message);
 })
 
-//
+app.get('/offers/manage/assign', async (req, res) => {
+    let message = [];
+    let packages = Package.find();
+    for (let _package of packages) {
+        let services = Service.find({id_package: _package._id});
+        for (let service of services) {
+            message.push({
+                id_package: _package._id,
+                id_service: service._id,
+                msgs: await serviceOffer.manageOffersAssign(web3, service)
+            })
+        }
+    }
+    res.status(200).send(message);
+})
+
+app.get('/offers/manage/send', async (req, res) => {
+    let message = [];
+    let packages = Package.find();
+    for (let _package of packages) {
+        let services = Service.find({id_package: _package._id});
+        for (let service of services) {
+            message.push({
+                id_package: _package._id,
+                id_service: service._id,
+                msgs: await serviceOffer.manageOffersSend(web3, service)
+            })
+        }
+    }
+    res.status(200).send(message);
+})
 
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)

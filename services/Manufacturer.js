@@ -19,7 +19,7 @@ let fetchManufacturers = (web3) => {
 
 let getUrl = (web3, manufacturerAddress) => {
     return new Promise(async (resolve, reject) => {
-        let manufacturerRegisterContract = new web3.eth.Contract(abiManufacturer, config.manufacturersRegisterAddress);
+        let manufacturerRegisterContract = new web3.eth.Contract(abiManufacturerRegister, config.manufacturersRegisterAddress);
         let url = await manufacturerRegisterContract.methods.getManufacturer(manufacturerAddress).call();
         resolve(url);
     })

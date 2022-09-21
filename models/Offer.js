@@ -7,7 +7,8 @@ const Offer = Schema("Offers", {
     id_package: {type: String, required: true},
     price: {type: Number, required: true},
     endDate: {type: Date, required: true},
-    state: {type: String, default: "SEND"},
+    //states ["CREATED", "ASSIGNED", "SEND", "EXPIRED", "ACCEPTED", "REJECTED"]
+    state: {type: String, default: "CREATED"},
     manufacturer_address: {type: String, default: ""},
 })
 
