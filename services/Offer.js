@@ -1,10 +1,10 @@
 const Offer = require("../models/Offer");
 const config = require("../config.json");
-const serviceManufacturer = require("./Manufacturer");
 const axios = require("axios");
 const serviceService = require("./Service");
 const Service = require("../models/Service");
 const Package = require("../models/Package");
+const abiManufacturersPool = require("../contracts/abiManufacturersPool.json");
 
 let calculatePrice = (service) => {
     let offer = Offer.find({id_service: service._id});
@@ -29,184 +29,128 @@ let createOffer = (service) => {
         id_service: service._id,
         id_package: service.id_package,
         price: calculatePrice(service),
-        endDate: new Date() + config.packages.offer.expiry_duration * 1000,
+        endDate: new Date() / 1000 + config.packages.offer.expiry_duration,
     }).save();
 }
 
-let assignOffer = async (web3, offer) => {
-    //Get service
-    let service = Service.find({_id: offer.id_service})[0];
-    //Gather all manufacturers
-    let manufacturers = await serviceManufacturer.fetchManufacturers(web3);
-    //Remove manufacturers from array that already rejected an offer or offer expired
-    let offers = Offer.find({id_service: service._id, state: {$in: ["REJECTED", "EXPIRED"]}});
-    for (let i = 0; i < offers.length; i++) {
-        for (let j = 0; j < manufacturers.length; j++) {
-            if (offers[i].manufacturer_address === manufacturers[j].address) {
-                manufacturers.splice(j, 1);
-                break;
-            }
-        }
-    }
-    //Select one manufacturer randomly
-    offer.manufacturer_address = manufacturers[Math.floor(Math.random() * manufacturers.length)].address;
-    offer.state="ASSIGNED";
-    offer.save();
-    return offer;
-}
-
-let sendOffer = (web3, offer) => {
+let publishOffer = (web3, offer) => {
     return new Promise(async (resolve, reject) => {
-        //Get manufacturer url
-        let url = await serviceManufacturer.getUrl(web3, offer.manufacturer_address);
-        //Get package address from offer
         let _package = Package.find({_id: offer.id_package})[0];
-        //Send offer to manufacturer
-        axios.get('url', {
-            params: {
-                address: _package.address,
-                price: offer.price,
-                endDate: offer.endDate
-            }
-        }).then((response) => {
-            //Set offer state to send
-            offer.state = "SEND";
-            offer.save();
-            resolve(offer);
-        }).catch((error) => {
-            offer.state = "REJECTED";
-            offer.save();
-            resolve(offer);
-        });
+        //Create manufacturersPool contract object
+        let manufacturersPool = new web3.eth.Contract(abiManufacturersPool, config.manufacturerPoolAddress);
+        //add offer to manufacturersPool
+        await manufacturersPool.methods.addOffer(offer._id, offer.price, offer.endDate).send({
+            from: _package.address,
+            gasLimit: "100000",
+        })
+        offer.state = "PUBLISHED";
+        offer.save();
+        resolve();
     })
 }
 
-let manageOffersNew = (web3, service) => {
-    return new Promise(async (resolve, reject) => {
-        //If offer is accepted or offer is in send state don't create new offers
-        if (Offer.find({id_service: service._id, state: {$in: ["SEND", "ACCEPTED"]}}).length <= 0) {
-            //Create new offer
-            let offer = createOffer(service);
-            resolve({msg: "New offer created", offer: offer});
-        }
-        resolve({msg: "Offer not accepted or still waiting for response"});
-    })
-
-
-}
-
-let manageOffersAssign = (web3, service) => {
+let updateOfferPool = (web3, offer) => {
     return new Promise(async (resolve, reject) => {
         let msg = [];
-        let offers = Offer.find({id_service: service._id, state: "CREATED"});
-        for (let offer of offers) {
-            await assignOffer(web3, offer);
-            msg.push([{msg: "Offer assigned", offer: offer}]);
+        let manufacturersPool = new web3.eth.Contract(abiManufacturersPool, config.manufacturerPoolAddress);
+        try {
+            let offerWeb3 = await manufacturersPool.methods.getOffer(offer._id).call();
+            //Check if offer is expired
+            if (offerWeb3.endDate < new Date() / 1000) {
+                offer.state = "EXPIRED";
+                msg.push({
+                    offer: offer,
+                    msg: "Offer expired",
+                })
+            }
+            switch (offerWeb3.state) {
+                //Accepted by the manufacturer
+                case 1: {
+                    offer.state = "ACCEPTED";
+                    msg.push({
+                        offer: offer,
+                        msg: "Offer accepted",
+                    })
+                }
+                    break;
+                case 2: {
+                    offer.state = "REMOVED";
+                    msg.push({
+                        offer: offer,
+                        msg: "Offer removed",
+                    })
+                }
+            }
+            offer.save();
+            resolve(msg);
+        }catch (e) {
             resolve(msg);
         }
-        resolve({msg: "No offers to assign"});
     })
-
-
 }
 
-let manageOffersSend = (web3, service) => {
+//Return true if offer was accepted
+let manageOffers = (web3, service) => {
     return new Promise(async (resolve, reject) => {
-        let msg = [];
-        //Check if service has active offer
-        if (getOffersActive(service).length <= 0) {
-            //Create new offer
-            let offer = createOffer(service);
-            msg.push([{msg: "New offer created", offer: offer}]);
-        }
-        //Get all offers of service
+        let msg=[];
         let offers = getOffers(service);
+        //If service has no offers create new one
+        if (offers.length === 0) {
+            let of = createOffer(service);
+            console.log("Created offer:", of);
+            msg.push({
+                offer: of,
+                msg: "Created new offer",
+            });
+            offers = getOffers(service);
+        }
         for (let offer of offers) {
+            msg.push(await updateOfferPool(web3, offer));
             switch (offer.state) {
                 case "CREATED": {
-                    //Assign offer to manufacturer
-                    await assignOffer(web3, offer);
-                    msg.push([{msg: "Offer assigned", offer: offer}]);
-                    //Send offer to manufacturer
-                    await sendOffer(web3, offer);
-                    msg.push([{msg: "Offer send", offer: offer}]);
+                    await publishOffer(web3, offer);
+                    console.log("Offer published: ", offer);
+                    msg.push({
+                        offer: offer,
+                        msg: "Offer published",
+                    })
                 }
                     break;
-                case "SEND": {
-                    //Check if offer expired
-                    if (offer.endDate * 1000 < new Date()) {
-                        offer.state = "EXPIRED";
-                        offer.save();
-                        msg.push([{msg: "Offer expired", offer: offer}]);
-                    }
-                }
-                    break;
-                case "REJECTED": {
-                    msg.push([{msg: "Offer rejected", offer: offer}]);
-                    //Create new offer
-                    let of = createOffer(service);
-                    msg.push([{msg: "New offer created", offer: of}]);
-                    //Assign offer to manufacturer
-                    await assignOffer(web3, offer);
-                    msg.push([{msg: "Offer assigned", offer: of}]);
-                    //Send offer to manufacturer
-                    await sendOffer(web3, offer);
-                    msg.push([{msg: "Offer send", offer: of}]);
-                }
-                    break;
-                case "EXPIRED": {
-                    msg.push([{msg: "Offer expired", offer: offer}]);
-                    //Create new offer
-                    let of = createOffer(service);
-                    msg.push([{msg: "New offer created", offer: of}]);
-                    //Assign offer to manufacturer
-                    await assignOffer(web3, offer);
-                    msg.push([{msg: "Offer assigned", offer: of}]);
-                    //Send offer to manufacturer
-                    await sendOffer(web3, offer);
-                    msg.push([{msg: "Offer send", offer: of}]);
+                case "PUBLISHED": {
 
                 }
                     break;
                 case "ACCEPTED": {
-                    msg.push([{msg: "Offer accepted", offer: offer}]);
-
+                    //Change service state to ACCEPTED
+                    service.state = "ACCEPTED";
+                    service.save();
+                    console.log("Offer accepted: ", offer);
+                    msg.push({
+                        offer: offer,
+                        msg: "Offer accepted",
+                    })
+                }
+                    break;
+                case "EXPIRED": {
+                    //Create new offer
+                    let of = await createOffer(service);
+                    console.log("Offer expired - created new: ", of);
+                    msg.push({
+                        offer: of,
+                        msg: "Offer expired - created new",
+                    })
                 }
                     break;
             }
         }
         resolve(msg);
     })
-
-
-}
-
-
-let getOffer = (service) => {
-    return Offer.find({id_service: service._id})[0];
 }
 
 let getOffers = (service) => {
     return Offer.find({id_service: service._id});
 }
 
-//Find offers created offers
-let getOffersCreated = (service) => {
-    return Offer.find({id_service: service._id, state: "CREATED"});
-}
-
-let getOffersActive = (service) => {
-    return Offer.find({id_service: service._id, state: {$in: ["SEND", "CREATED"]}});
-
-}
-
 module.exports.createOffer = createOffer;
-module.exports.assignOffer = assignOffer;
-module.exports.sendOffer = sendOffer;
-module.exports.manageOffersNew = manageOffersNew;
-module.exports.manageOffersAssign = manageOffersAssign;
-module.exports.manageOffersSend = manageOffersSend;
-module.exports.getOffersActive = getOffersActive;
-module.exports.getOffersCreated = getOffersCreated;
 module.exports.getOffers = getOffers;
-module.exports.getOffer = getOffer;
+module.exports.manageOffers = manageOffers;

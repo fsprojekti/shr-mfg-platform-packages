@@ -4,7 +4,6 @@ const Web3 = require("web3");
 const config = require('./config.json');
 
 const Offer = require("./models/Offer");
-const Manufacturer = require("./models/Manufacturer");
 const Service = require("./models/Service");
 const Package = require("./models/Package");
 
@@ -216,51 +215,13 @@ app.get('/services/manage', (req, res) => {
     res.status(200).send(message);
 });
 
-app.get('/offers/manage/new', async (req, res) => {
-    let message = [];
-    let packages = Package.find();
-    for (let _package of packages) {
-        let services = Service.find({id_package: _package._id});
-        for (let service of services) {
-            message.push({
-                id_package: _package._id,
-                id_service: service._id,
-                msgs: await serviceOffer.manageOffersNew(web3, service)
-            })
-        }
-    }
-    res.status(200).send(message);
-})
-
-app.get('/offers/manage/assign', async (req, res) => {
-    let message = [];
-    let packages = Package.find();
-    for (let _package of packages) {
-        let services = Service.find({id_package: _package._id});
-        for (let service of services) {
-            message.push({
-                id_package: _package._id,
-                id_service: service._id,
-                msgs: await serviceOffer.manageOffersAssign(web3, service)
-            })
-        }
-    }
-    res.status(200).send(message);
-})
-
-app.get('/offers/manage/send', async (req, res) => {
-    let message = [];
-    let packages = Package.find();
-    for (let _package of packages) {
-        let services = Service.find({id_package: _package._id});
-        for (let service of services) {
-            message.push({
-                id_package: _package._id,
-                id_service: service._id,
-                msgs: await serviceOffer.manageOffersSend(web3, service)
-            })
-        }
-    }
+app.get('/offers/manage/', async (req, res) => {
+    //Reject if service ide not set
+    if (!req.query.id_service) return res.status(400).send("Parameter id_service not set");
+    //Reject if there is no service with the given id_service
+    let service = Service.find({_id: req.query.id_service})[0];
+    if (!service) return res.status(400).send("No service with the given id_service");
+    let message = await serviceOffer.manageOffers(web3, service);
     res.status(200).send(message);
 })
 

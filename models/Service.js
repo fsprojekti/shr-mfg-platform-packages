@@ -4,7 +4,7 @@ const {Schema} = new DbLocal({path: config.db});
 
 const Service = Schema("Services", {
     id_package: {type: String, required: true},
-    //States ["CREATED", "MARKET", "DEAL", "TRANS_OUT","MANUFACTURING","TRANS_BACK", "DONE"]
+    //States ["CREATED", "POOL", "TRANS_OUT", "MANUFACTURING", "TRANS_BACK", "DONE"]
     state: {type: String, default: "CREATED"},
     sourceAddress: String,
     targetAddress: String,

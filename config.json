@@ -15,5 +15,6 @@
       "price_increase_interval": [1, 5]
     }
   },
-  "manufacturersRegisterAddress":"0x21052339A7fE974eAA373D00ADCaB10498ac3400"
+  "manufacturersRegisterAddress":"0x21052339A7fE974eAA373D00ADCaB10498ac3400",
+  "manufacturerPoolAddress":"0xbfbF3Ab56f634039fAE08d468Ff75FDBf2524D02"
 }

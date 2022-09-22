@@ -1,7 +1,6 @@
 const config = require("../config.json");
 const abiDAI = require("../contracts/abiDAI.json");
 const Offer = require("../models/Offer");
-const serviceManufacturer = require("./Manufacturer");
 const axios = require("axios");
 const Service = require("../models/Service");
 const serviceService = require("../services/Service");
