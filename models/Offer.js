@@ -6,7 +6,7 @@ const Offer = Schema("Offers", {
     id_service: {type: String, required: true},
     id_package: {type: String, required: true},
     price: {type: Number, required: true},
-    endDate: {type: Date, required: true},
+    endDate: {type: Number},
     //states ["CREATED", "PUBLISHED", "EXPIRED", "ACCEPTED"]
     state: {type: String, default: "CREATED"},
     manufacturer_address: {type: String, default: ""},

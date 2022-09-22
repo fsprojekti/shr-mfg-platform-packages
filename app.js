@@ -8,8 +8,7 @@ const Service = require("./models/Service");
 const Package = require("./models/Package");
 
 const servicePackage = require("./services/Package");
-const serviceService = require("./services/Service");
-const serviceOffer = require("./services/Offer");
+const servicesService = require("./services/Service");
 
 const express = require('express')
 const app = express()
@@ -17,6 +16,8 @@ const port = 3000
 
 //Connect to web3
 let web3 = new Web3(new Web3.providers.WebsocketProvider(config.web3_provider));
+
+web3.eth.handleRevert = true;
 
 //Import account to web3 generate from private key
 let account = web3.eth.accounts.privateKeyToAccount(config.admin.private_key);
@@ -174,10 +175,6 @@ app.get('/offers/get', (req, res) => {
     res.send(Offer.find());
 })
 
-app.get('/manufacturers/register/get', (req, res) => {
-    res.send(Manufacturer.find());
-})
-
 app.get('/services/get', (req, res) => {
     res.send(Service.find());
 })
@@ -192,38 +189,28 @@ app.get('/package/services/get', (req, res) => {
     res.status(200).send(Service.find({id_package: req.query.id_package}));
 })
 
-app.get('/package/services/new', async (req, res) => {
-    //Reject if parameter id_package not set
-    if (!req.query.id_package) return res.status(400).send("Parameter id_package not set");
-    //Reject if there is no package with the given id_package
-    let _package = Package.find({_id: req.query.id_package});
-    if (!_package) return res.status(400).send("No package with the given id_package");
-    //Reject if service is already in progress
-    if (servicePackage.isServiceActive(_package)) return res.status(400).send("Service is already in progress");
-    //Crete new service
-    servicePackage.newService(_package);
-})
 
-
-app.get('/services/manage', (req, res) => {
-    //Get packages
-    let message = {};
+app.get('/packages/services/manage', async (req, res) => {
+    //Get all packages
+    let msg=[];
     let packages = Package.find();
-    for (let _package of packages) {
-        message[_package._id] = serviceService.manageServices(web3, _package);
+    for(let _package of packages) {
+        msg.push(await servicesService.manageServices(web3, _package));
     }
-    res.status(200).send(message);
-});
-
-app.get('/offers/manage/', async (req, res) => {
-    //Reject if service ide not set
-    if (!req.query.id_service) return res.status(400).send("Parameter id_service not set");
-    //Reject if there is no service with the given id_service
-    let service = Service.find({_id: req.query.id_service})[0];
-    if (!service) return res.status(400).send("No service with the given id_service");
-    let message = await serviceOffer.manageOffers(web3, service);
-    res.status(200).send(message);
+    res.status(200).send(msg);
 })
+
+//Game control
+app.get('/game/start', (req, res) => {
+    //Get packages
+    let packages = Package.find();
+    //Activate packages
+    for (let _package of packages) {
+        //Check if package has active service
+    }
+})
+
+//
 
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)

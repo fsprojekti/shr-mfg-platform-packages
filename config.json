@@ -3,18 +3,41 @@
   "tokenContractAddress": "0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735",
   "web3_provider": "wss://rinkeby.infura.io/ws/v3/76e80eeb6cfb49109e5346df0e3698f9",
   "admin": {
-    "private_key": "0xa923052f204550a093042381554e064c9ef8e52f42d655d33259875358504b03"
+    "private_key": "efbb5c14ad46a6e87cc33f53332b41ab41048e0e49d3ba3e9b5e3b65fac69c44"
   },
-  "packages":{
+  "packages": {
     "services": {
-      "frequency_interval": [300, 600 ]
+      "frequency_interval": [
+        300,
+        600
+      ]
     },
     "offer": {
-      "expiry_duration": 150,
-      "price_start_interval": [1, 10],
-      "price_increase_interval": [1, 5]
+      "expiry_duration": 3600,
+      "price_start_interval": [
+        1,
+        10
+      ],
+      "price_increase_interval": [
+        1,
+        5
+      ]
     }
   },
-  "manufacturersRegisterAddress":"0x21052339A7fE974eAA373D00ADCaB10498ac3400",
-  "manufacturerPoolAddress":"0xbfbF3Ab56f634039fAE08d468Ff75FDBf2524D02"
+  "manufacturerPoolAddress": "0xD1A90aAA0C752CA7F4c65b46B5bDB78aD4d7187D",
+  "map": {
+    "0xBDb8C7C669dBaD5bc7f152243C917913869F9ABc": {
+      "name": "Marko",
+      "ip": "http://192.168.0.108:3000",
+      "location": 1
+    },
+    "0xF4B28fC110EbFF566693689bbe392C786c448B50": {
+      "name": "Helena",
+      "ip": "http://192.168.0.107:3000",
+      "location": 2
+    }
+  },
+  "car_controller": {
+    "url": "http://192.168.0.100:3000"
+  }
 }

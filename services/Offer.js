@@ -29,20 +29,24 @@ let createOffer = (service) => {
         id_service: service._id,
         id_package: service.id_package,
         price: calculatePrice(service),
-        endDate: new Date() / 1000 + config.packages.offer.expiry_duration,
     }).save();
 }
 
 let publishOffer = (web3, offer) => {
     return new Promise(async (resolve, reject) => {
+        //Get current block timestamp
+        let block = await web3.eth.getBlock("latest");
         let _package = Package.find({_id: offer.id_package})[0];
         //Create manufacturersPool contract object
         let manufacturersPool = new web3.eth.Contract(abiManufacturersPool, config.manufacturerPoolAddress);
         //add offer to manufacturersPool
-        await manufacturersPool.methods.addOffer(offer._id, offer.price, offer.endDate).send({
+        let price = offer.price;
+        let endDate = block.timestamp+config.packages.offer.expiry_duration;
+        await manufacturersPool.methods.addOffer(offer._id, price, endDate).send({
             from: _package.address,
-            gasLimit: "100000",
+            gasLimit:1000000
         })
+        offer.endDate= endDate;
         offer.state = "PUBLISHED";
         offer.save();
         resolve();
