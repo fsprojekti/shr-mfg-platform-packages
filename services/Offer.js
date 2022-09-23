@@ -55,40 +55,28 @@ let publishOffer = (web3, offer) => {
 
 let updateOfferPool = (web3, offer) => {
     return new Promise(async (resolve, reject) => {
-        let msg = [];
         let manufacturersPool = new web3.eth.Contract(abiManufacturersPool, config.manufacturerPoolAddress);
         try {
             let offerWeb3 = await manufacturersPool.methods.getOffer(offer._id).call();
             //Check if offer is expired
-            if (offerWeb3.endDate < new Date() / 1000) {
+            if (parseInt(offerWeb3.endDate) < Math.floor(new Date() / 1000)) {
                 offer.state = "EXPIRED";
-                msg.push({
-                    offer: offer,
-                    msg: "Offer expired",
-                })
             }
-            switch (offerWeb3.state) {
+            switch (parseInt(offerWeb3.state)) {
                 //Accepted by the manufacturer
                 case 1: {
                     offer.state = "ACCEPTED";
-                    msg.push({
-                        offer: offer,
-                        msg: "Offer accepted",
-                    })
+                    offer.manufacturer_address= offerWeb3.manufacturer;
                 }
                     break;
                 case 2: {
                     offer.state = "REMOVED";
-                    msg.push({
-                        offer: offer,
-                        msg: "Offer removed",
-                    })
                 }
             }
             offer.save();
-            resolve(msg);
+            resolve();
         }catch (e) {
-            resolve(msg);
+            resolve();
         }
     })
 }

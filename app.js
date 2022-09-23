@@ -62,7 +62,6 @@ app.get('/admin/clear', (req, res) => {
     //clear all database entries
     Package.find().forEach(_package => Package.remove(_package));
     Offer.find().forEach(offer => Offer.remove(offer));
-    Manufacturer.find().forEach(manufacturer => Manufacturer.remove(manufacturer));
     Service.find().forEach(service => Service.remove(service));
     res.status(200).send("Database cleared");
 })
@@ -192,9 +191,9 @@ app.get('/package/services/get', (req, res) => {
 
 app.get('/packages/services/manage', async (req, res) => {
     //Get all packages
-    let msg=[];
+    let msg = [];
     let packages = Package.find();
-    for(let _package of packages) {
+    for (let _package of packages) {
         msg.push(await servicesService.manageServices(web3, _package));
     }
     res.status(200).send(msg);
@@ -210,7 +209,17 @@ app.get('/game/start', (req, res) => {
     }
 })
 
-//
+//BC
+app.get('/bc/offers', (req, res) => {
+    let contractAddress = config.manufacturerPoolAddress;
+    let contractAbi = require('./contracts/abiManufacturersPool.json');
+    let contract = new web3.eth.Contract(contractAbi, contractAddress);
+    contract.methods.getOffers().call().then(offers => {
+        res.status(200).send(offers);
+    }).catch(e => {
+        res.status(400).send(e);
+    })
+})
 
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)

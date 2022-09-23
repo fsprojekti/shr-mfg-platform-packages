@@ -1,5 +1,6 @@
 const Offer = require("../models/Offer");
 const Service = require("../models/Service");
+const Package = require("../models/Package");
 const serviceOffer = require("../services/Offer");
 const axios = require("axios");
 const config = require("../config.json");
@@ -17,12 +18,19 @@ let isActive = (service) => {
     return service.state !== "CREATED"
 }
 
-let apiOrderTransport = (order) => {
+let apiOrderTransportFromWarehouse = (service) => {
     // send request to transport service using axios get http
     return new Promise((resolve, reject) => {
+        //Find accepted offer
+        let offer = Offer.find({id_service: service._id, state: "ACCEPTED"})[0];
+        //Find package
+        let _package = Package.find({_id: service.id_package})[0];
         axios.get(config.car_controller.url + "/request", {
             params: {
-                offerId: order.offerId
+                packageAddress: _package.address,
+                offerId: offer._id,
+                source:5,
+                target:config.map[offer.manufacturer_address].location
             }
         }).then((response) => {
             resolve(response.data)
@@ -61,8 +69,8 @@ let manageServices = (web3, _package) => {
                     break;
                 case "ACCEPTED": {
                     //Request transport
-
-
+                    console.log("Service accepted: ", service._id);
+                    let order = await apiOrderTransportFromWarehouse(service);
                 }
                     break;
                 case "TRANSPORT_OUT": {

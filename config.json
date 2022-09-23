@@ -24,10 +24,10 @@
       ]
     }
   },
-  "manufacturerPoolAddress": "0xD1A90aAA0C752CA7F4c65b46B5bDB78aD4d7187D",
+  "manufacturerPoolAddress": "0x372F96d2623207685e37a5d21fEAA82245A87e0C",
   "map": {
     "0xBDb8C7C669dBaD5bc7f152243C917913869F9ABc": {
-      "name": "Marko",
+      "name": "Mark",
       "ip": "http://192.168.0.108:3000",
       "location": 1
     },
