@@ -142,7 +142,7 @@ app.get('/packages/balance/tokens', async (req, res) => {
     let balances = [];
     let tokenContract = new web3.eth.Contract(abiDAI, config.tokenContractAddress);
     for (let _package of packages) {
-        balances.push({[_package.address]: await tokenContract.methods.balanceOf(_package.address).call()});
+        balances.push({[_package.address]: web3.utils.fromWei(await tokenContract.methods.balanceOf(_package.address).call())});
     }
     res.status(200).send(balances);
 })
@@ -219,6 +219,40 @@ app.get('/bc/offers', (req, res) => {
     }).catch(e => {
         res.status(400).send(e);
     })
+})
+
+app.get('/transportFinished', (req, res) => {
+    //Reject if parameter offerId not set
+    if (!req.query.offerId) return res.status(400).send("Parameter offerId not set");
+    //Get offer and reject of offer not found
+    let offer = Offer.find({_id: req.query.offerId})[0];
+    if (!offer) return res.status(400).send("Offer not found");
+    //Get service to which offer belongs
+    let service = Service.find({_id: offer.id_service})[0];
+    if (service.state === "TRANSPORT_BACK") {
+        service.state = "BACK";
+        service.save();
+        console.log("Service state changed to BACK");
+        res.status(200).send("Service state changed to BACK");
+    } else {
+        service.state = "PROCESSING";
+        service.save();
+        console.log("Service state changed to PROCESSING");
+        res.status(200).send("Service state changed to PROCESSING");
+    }
+})
+
+app.get('/processingFinished', (req, res) => {
+    //Reject if parameter offerId not set
+    if (!req.query.offerId) return res.status(400).send("Parameter offerId not set");
+    //Get offer and reject of offer not found
+    let offer = Offer.find({_id: req.query.offerId})[0];
+    if (!offer) return res.status(400).send("Offer not found");
+    //Get service to which offer belongs
+    let service = Service.find({_id: offer.id_service})[0];
+    service.state = "PROCESSING_FINISHED";
+    service.save()
+    res.status(200).send("Service state changed to PROCESSING_FINISHED");
 })
 
 app.listen(port, () => {
