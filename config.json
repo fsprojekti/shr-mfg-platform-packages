@@ -1,43 +1,70 @@
 {
   "db": "./db",
-  "tokenContractAddress": "0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735",
-  "web3_provider": "wss://rinkeby.infura.io/ws/v3/76e80eeb6cfb49109e5346df0e3698f9",
-  "admin": {
-    "private_key": "efbb5c14ad46a6e87cc33f53332b41ab41048e0e49d3ba3e9b5e3b65fac69c44"
+  "addressContractCPLToken": "0xBc0256e34B46C7Cf4FC4c30694f1D775e8A16185",
+  "addressContractCapacityPool": "0x4d50493e1172e8C1D5D8993486dAcE37E43beCf9",
+  "web3_provider": {
+    "sepolia": {
+      "https": "https://eth-sepolia.g.alchemy.com/v2/auQkAS4fXuM5E1pYq-C7ppq-_vH4N-HM",
+      "ws": "wss://eth-sepolia.g.alchemy.com/v2/auQkAS4fXuM5E1pYq-C7ppq-_vH4N-HM"
+    }
   },
-  "packages": {
+  "package": {
+    "count": 5,
+    "balanceTokenInitial": 500,
+    "balanceEthInitial": 0.01,
     "services": {
-      "frequency_interval": [
-        300,
-        600
-      ]
+      "duration": 300
     },
     "offer": {
-      "expiry_duration": 3600,
-      "price_start_interval": [
+      "expiryDuration": 60,
+      "priceStartInterval": [
         1,
         10
       ],
-      "price_increase_interval": [
+      "priceIncreaseInterval": [
         1,
         5
       ]
     }
   },
-  "manufacturerPoolAddress": "0x372F96d2623207685e37a5d21fEAA82245A87e0C",
-  "map": {
-    "0xBDb8C7C669dBaD5bc7f152243C917913869F9ABc": {
-      "name": "Mark",
-      "ip": "http://192.168.0.108:3000",
-      "location": 1
+  "packages": [
+    {
+      "url": "http://localhost:5000"
     },
-    "0xF4B28fC110EbFF566693689bbe392C786c448B50": {
-      "name": "Helena",
-      "ip": "http://192.168.0.107:3000",
-      "location": 3
+    {
+      "url": "http://localhost:5001"
+    },
+    {
+      "url": "http://localhost:5002"
+    },
+    {
+      "url": "http://localhost:5003"
+    },
+    {
+      "url": "http://localhost:5004"
     }
+  ],
+  "warehouses": [
+    {
+      "url": "http://localhost:6000"
+    },
+    {
+      "url": "http://localhost:6001"
+    },
+    {
+      "url": "http://localhost:6002"
+    },
+    {
+      "url": "http://localhost:6003"
+    },
+    {
+      "url": "http://localhost:6004"
+    }
+  ],
+  "warehouseCentral": {
+    "url": "http://localhost:7000"
   },
-  "car_controller": {
-    "url": "http://192.168.0.100:3000"
+  "transportCentral": {
+    "url": "http://localhost:8000"
   }
 }

@@ -3,13 +3,14 @@ const config = require("../config.json");
 const {Schema} = new DbLocal({path: config.db});
 
 const Offer = Schema("Offers", {
-    id_service: {type: String, required: true},
-    id_package: {type: String, required: true},
+    idService: {type: String, required: true},
+    idPackage: {type: String, required: true},
+    addressBuyer: {type: String, default: ""},
     price: {type: Number, required: true},
-    endDate: {type: Number},
-    //states ["CREATED", "PUBLISHED", "EXPIRED", "ACCEPTED"]
+    expiryDate: {type: Number},
+    //states ["CREATED", "SEND", "EXPIRED", "ACCEPTED"]
     state: {type: String, default: "CREATED"},
-    manufacturer_address: {type: String, default: ""},
+
 })
 
 module.exports = Offer;
