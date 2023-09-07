@@ -5,18 +5,24 @@ const serviceOffer = require("../services/Offer");
 const axios = require("axios");
 const config = require("../config.json");
 
-const tokenABI = require("../contracts/abiDAI.json");
-const tokenAddress = config.tokenContractAddress;
 
-
-module.exports.create = (_package) => {
+exports.create = (_package) => {
+    //Check if there is any service that is not in state DONE
+    let services = Service.find({idPackage: _package._id});
+    if(services.find(service => service.state !== "DONE")) return null;
+    //Create new service
     return Service.create({
-        id_package: _package._id,
-        //Current time in timestamp seconds
-        startDate: Math.floor(Date.now() / 1000),
+        idPackage: _package._id,
+        count: Service.find({idPackage: _package._id}).length
     }).save();
 }
 
+exports.createOffer = (service) => {
+    //Check if service is in state CREATED
+    if (service.state !== "CREATED") return null;
+    //Create new offer
+    return serviceOffer.createOffer(service);
+}
 
 
 // let apiOrderTransportFromWarehouse = (service) => {

@@ -5,6 +5,8 @@ const Package = require("../models/Package");
 const Offer = require("../models/Offer");
 const Service = require("../models/Service");
 const serviceAccount = require("./Account");
+const serviceOffer = require("./Offer");
+const serviceService = require("./Service");
 const Account = require("../models/Account");
 
 exports.getBalanceEth = (_package) => {
@@ -67,14 +69,17 @@ exports.addBalanceToken = (_package, amount) => {
         //Get admin account
         let adminAccounts = serviceAccount.getAdmin();
         await contractCPLToken.methods.transfer(this.getAccount(_package).address, amount).send({
-            from: adminAccounts[0].address});
+            from: adminAccounts[0].address
+        });
         resolve({package: _package.address, balance: amount});
     })
 }
 
 exports.getByAddress = (address) => {
-    let account  = serviceAccount.getAll().find(account => account.address === address);
-    return Package.findOne({idAccount: account._id});
+    let account = serviceAccount.getAll().find(account => account.address === address);
+    if (!account) return null;
+    let _package = Package.findOne({idAccount: account._id});
+    return _package;
 }
 
 exports.getAll = () => {
@@ -82,24 +87,38 @@ exports.getAll = () => {
 }
 
 exports.getOffers = (_package) => {
-    return Offer.find({id_package: _package._id});
+    //Get all services of package
+    let services = this.getServices(_package);
+    //Get all offers of services
+    let offers = [];
+    for (let service of services) {
+        offers.push({
+            [service._id]: serviceOffer.get(service)
+        })
+    }
+    return offers;
+}
+
+exports.getAllOffers = (_package) => {
+    //Get all offers of package
+    let services = this.getServices(_package);
+    let offers = [];
+    for (let service of services) {
+        //Flatten array of offers
+           offers = offers.concat(serviceOffer.get(service));
+    }
+    return offers;
 }
 
 exports.getServices = (_package) => {
-    return new Promise((resolve, reject) => {
-        try {
-            resolve(Service.find({id_package: _package._id}));
-        } catch (e) {
-            reject(e);
-        }
-    })
+    return Service.find({idPackage: _package._id});
 }
 
 exports.getAccount = (_package) => {
     return Account.find(_package.idAccount);
 }
 
-exports.create =  (count) => {
+exports.create = (count) => {
     //Create new account
     let account = serviceAccount.create();
     //Create new package
@@ -107,4 +126,19 @@ exports.create =  (count) => {
     //Retrieve  package
     return Package.findOne({address: account.address});
 }
+
+exports.createService = (_package) => {
+    return serviceService.create(_package);
+}
+
+exports.createOffer = (_package) => {
+    return serviceService.createOffer(_package);
+}
+
+exports.getServiceLast=(_package)=>{
+    //Get last service with max count parameter
+    return Service.find({idPackage: _package._id}).sort((a, b) => b.count - a.count)[0];
+}
+
+
 

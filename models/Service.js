@@ -10,6 +10,8 @@ const Service = Schema("Services", {
     serviceStart: {type: Number},
     //Service end timestamp
     serviceEnd: {type: Number},
+    //Service number for this package
+    count: {type: Number, default: 0},
 })
 
 module.exports = Service;

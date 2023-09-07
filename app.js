@@ -3,6 +3,8 @@ const express = require('express')
 const app = express()
 const port = 3000
 
+const emitter = require('./utils/events').eventEmitter;
+
 const adminRoutes = require('./api/routes/admin');
 const packageRoutes = require('./api/routes/package');
 const accountRoutes = require('./api/routes/accounts');
@@ -18,6 +20,13 @@ serviceAccount.loadAccountsToWallet();
 
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
+})
+
+//Subscribe to events
+const events = require('./utils/events');
+emitter.on('offerExpired', (offer) => {
+    //Log in yellow
+    console.log("\x1b[33m%s\x1b[0m", "Offer expired: ", offer);
 })
 
 

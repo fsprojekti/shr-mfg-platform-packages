@@ -1,52 +1,109 @@
 const Offer = require("../models/Offer");
 const config = require("../config.json");
+const axios = require("axios");
+const emitter = require('../utils/events').eventEmitter;
 
-module.exports.calculatePrice = (service) => {
-    let offer = Offer.find({id_service: service._id});
-    //Generate random number between min and max
-    let price = randomNumber(config.packages.offer.price_start_interval0, config.packages.offer.price_start_interval[1])
-    for (let i = offer.length - 1; i >= 0; i--) {
-        if (offer[i].state === "EXPIRED") {
-            price += randomNumber(config.packages.offer.price_increase_interval[0], config.packages.offer.price_increase_interval[1]);
-        } else if (offer[i].state === "SUCCESSFUL") {
-            break;
-        }
-    }
-    return price;
+exports.calculatePrice = (offer) => {
+    if (offer === null) return randomNumber(config.package.offer.priceStartInterval[0], config.package.offer.priceStartInterval[1]);
+    //If previous offer was expired return increased price
+    if (offer.state === "EXPIRED") return offer.price + randomNumber(config.package.offer.priceChangeInterval[0], config.package.offer.priceChangeInterval[1]);
+    //If previous offer was accepted return decreased price but not less than 1
+    if (offer.state === "ACCEPTED") return Math.max(offer.price - randomNumber(config.package.offer.priceChangeInterval[0], config.package.offer.priceChangeInterval[1]), 1);
+    return offer.price;
 }
 
 let randomNumber = (min, max) => {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-module.exports.createOffer = (service) => {
-    return Offer.create({
-        id_service: service._id,
-        id_package: service.id_package,
-        price: this.calculatePrice(service),
-    }).save();
+exports.createOffer = (service) => {
+    // Get all offers for the service, sorted by count in descending order.
+    let offers = Offer.find({idService: service._id}).sort((a, b) => b.count - a.count);
+    //Update expired offers
+    for (let offer of offers) {
+        this.updateExpired(offer);
+    }
+
+    let t = Math.floor(new Date() / 1000) + config.package.offer.expiryDuration;
+    // If there are no offers for the service, create a new offer with a price of 0.
+    if (offers.length === 0) {
+        let offer = Offer.create({
+            idService: service._id,
+            price: this.calculatePrice(null),
+            expiryDate: t
+        }).save();
+        //Create timout for offer expiration
+        setTimeout(() => {
+            offer.state = "EXPIRED";
+            offer.save();
+            emitter.emit('offerExpired', offer);
+        }, config.package.offer.expiryDuration * 1000);
+        return offer;
+    }
+
+    // If the first offer is expired or accepted, create a new offer with the same price.
+    if (offers[0].state === "EXPIRED" || offers[0].state === "ACCEPTED") {
+        let offer = Offer.create({
+            idService: service._id,
+            price: this.calculatePrice(offers[0]),
+            expiryDate: t,
+            count: offers[0].count + 1,
+        }).save();
+        setTimeout(() => {
+            offer.state = "EXPIRED";
+            offer.save();
+            emitter.emit('offerExpired', offer);
+        }, config.package.offer.expiryDuration * 1000);
+        return offer;
+    }
+    return null;
 }
 
-// module.exports.publishOffer = (web3, offer) => {
-//     return new Promise(async (resolve, reject) => {
-//         //Get current block timestamp
-//         let block = await web3.eth.getBlock("latest");
-//         let _package = Package.find({_id: offer.id_package})[0];
-//         //Create manufacturersPool contract object
-//         let manufacturersPool = new web3.eth.Contract(abiManufacturersPool, config.manufacturerPoolAddress);
-//         //add offer to manufacturersPool
-//         let price = offer.price;
-//         let endDate = block.timestamp+config.packages.offer.expiry_duration;
-//         await manufacturersPool.methods.addOffer(offer._id, price, endDate).send({
-//             from: _package.address,
-//             gasLimit:1000000
-//         })
-//         offer.endDate= endDate;
-//         offer.state = "PUBLISHED";
-//         offer.save();
-//         resolve();
-//     })
-// }
+exports.get = (service) => {
+    //Update expired offers
+    let offers = Offer.find({idService: service._id});
+    for (let offer of offers) {
+        this.updateExpired(offer);
+    }
+    return offers;
+}
+
+exports.getAll = () => {
+    return Offer.find();
+}
+
+exports.HttpSendOffer = (offer) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let index = this.clcWarehouse();
+            let url = config.warehouses[index].url + "/offer/new";
+            let data = {
+                offer: {
+                    id: offer._id,
+                    price: offer.price,
+                    expiryDate: offer.expiryDate,
+                }
+            }
+            //Form GET request with data as query parameter
+            let response = await axios.get(url, {params: data});
+
+            //Update offer state and manufacturer index
+            offer.state = "SEND";
+            offer.manufacturer = index;
+            offer.save();
+
+            resolve(response.data);
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
+
+exports.clcWarehouse = (offer) => {
+    //Select random number from 0 to number of warehouses
+    return randomNumber(0, config.warehouses.length - 1);
+
+}
 
 // let updateOfferPool = (web3, offer) => {
 //     return new Promise(async (resolve, reject) => {
@@ -137,3 +194,14 @@ module.exports.createOffer = (service) => {
 // let getOffers = (service) => {
 //     return Offer.find({id_service: service._id});
 // }
+
+exports.updateExpired = (offer) => {
+    if (offer.state === "EXPIRED") return;
+    if (offer.state === "ACCEPTED") return;
+    //Check with current timestamp
+    if (offer.expiryDate < Math.floor(new Date() / 1000)) {
+        offer.state = "EXPIRED";
+        offer.save();
+    }
+
+}
