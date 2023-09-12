@@ -1,6 +1,33 @@
 const Account = require("../../models/Account");
 const serviceAccount = require("../../services/Account");
+const servicePackage = require("../../services/Package");
+const {web3} = require("../../utils/utils");
 
+exports.getBalanceEth = async (req, res, next) => {
+    try {
+        //Get account
+        let account = serviceAccount.get();
+        let balance = await serviceAccount.getBalanceEth(account);
+        //Return balance
+        res.status(200).json(balance);
+    } catch (e) {
+        res.status(400).json(e);
+    }
+}
+
+exports.getBalanceToken = async (req, res, next) => {
+    try {
+        //Get account
+        let account = serviceAccount.get();
+        let balance = await serviceAccount.getBalanceToken(account);
+        //Return balance
+        res.status(200).json(balance);
+    } catch (e) {
+        res.status(400).json(e);
+    }
+
+
+}
 
 exports.get = (req, res, next) => {
     //Check for address parameter

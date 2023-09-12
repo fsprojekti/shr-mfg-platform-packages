@@ -1,48 +1,25 @@
 const Account = require('../models/Account');
 const {web3, contractCPLToken, mnemonic} = require("../utils/utils");
-const {ethers} = require("ethers");
+const secret = require("../secret.json");
 
 
-exports.getUsers = () => Account.find({type: "USER"});
-
-exports.getAdmin = () => Account.find({type: "ADMIN"});
-
-exports.getAll = () => Account.find();
-
+exports.get = () => Account.findOne();
 
 exports.create = () => {
-    //Create account from mnemonic. If this is the first account, it will be admin account (type: ADMIN) otherwise it will be a user account (type: USER). Add account to web3 wallet and save it to database
-    let accounts = Account.find();
-    let type = accounts.length === 0 ? "ADMIN" : "USER";
-    let account = web3.eth.accounts.privateKeyToAccount((ethers.HDNodeWallet.fromMnemonic(mnemonic, "m/44'/60'/0'/0/" + accounts.length)).privateKey)
+    let account = web3.eth.accounts.privateKeyToAccount(secret.privateKey)
     web3.eth.accounts.wallet.add(account);
     let _account = Account.create({
         address: account.address,
         privateKey: account.privateKey,
-        type: type
     });
     _account.save();
     return Account.findOne({address: account.address});
 }
 
-exports.createAdmin = () => {
-    let accounts = Account.find({type: "ADMIN"});
-    if (accounts.length > 0) return accounts[0];
-    return this.create();
-
-}
-
-exports.loadAccountsToWallet = () => {
-    let accounts = Account.find();
-    for (let i = 0; i < accounts.length; i++) {
-        let account = web3.eth.accounts.privateKeyToAccount(accounts[i].privateKey);
-        web3.eth.accounts.wallet.add(account);
-    }
-}
-
 exports.getBalanceEth = (account) => {
     return new Promise(async (resolve, reject) => {
         let balance = await web3.eth.getBalance(account.address);
+        balance = web3.utils.fromWei(balance, "ether");
         resolve(balance);
     })
 }
@@ -50,6 +27,7 @@ exports.getBalanceEth = (account) => {
 exports.getBalanceToken = (account) => {
     return new Promise(async (resolve, reject) => {
         let balance = await contractCPLToken.methods.balanceOf(account.address).call();
+        balance = web3.utils.fromWei(balance, "ether");
         resolve(balance);
     })
 }

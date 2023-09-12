@@ -1,5 +1,6 @@
 const {web3, contractCPLToken} = require("../utils/utils");
 //Console log web instance with time and blue color
+const secret = require("../secret.json");
 
 const Package = require("../models/Package");
 const Offer = require("../models/Offer");
@@ -9,81 +10,33 @@ const serviceOffer = require("./Offer");
 const serviceService = require("./Service");
 const Account = require("../models/Account");
 
-exports.getBalanceEth = (_package) => {
-    return new Promise(async (resolve, reject) => {
-        let balance = await web3.eth.getBalance(this.getAccount(_package).address);
-        balance = web3.utils.fromWei(balance, "ether");
-        resolve(balance);
-    })
+
+exports.get = () => {
+    return Package.findOne();
 }
 
-exports.clearBalanceEth = (_package) => {
-    return new Promise(async (resolve, reject) => {
-        let balance = await this.getBalanceEth(_package);
-        if (balance > 0) {
-            await web3.eth.sendTransaction({
-                from: web3.eth.accounts.wallet[0].address,
-                to: _package.address,
-                value: balance,
-                gasLimit: 100000
-            });
-            resolve({package: _package.address, balance: balance});
-        }
-        reject("No balance to clear");
-    })
+exports.create = (account) => {
+    let _package = Package.create({idAccount: account._id,}).save();
+    //Retrieve  package
+    return Package.findOne({address: account.address});
 }
 
-exports.getBalanceToken = (_package) => {
-    return new Promise(async (resolve, reject) => {
-        let balance = await contractCPLToken.methods.balanceOf(this.getAccount(_package).address).call();
-        balance = web3.utils.fromWei(balance, "ether");
-        resolve(balance);
-    })
-}
-
-exports.clearBalanceToken = (_package) => {
-    return new Promise(async (resolve, reject) => {
-        let balance = await this.getBalanceToken(web3, _package);
-        if (balance > 0) {
-            await contractCPLToken.methods.transfer(web3.eth.accounts.wallet[0].address, balance).send({from: _package.address});
-            resolve({package: _package.address, balance: balance});
-        }
-        reject("No token balance to clear");
-    })
-}
-
-exports.addBalanceEth = (_package, amount) => {
-    return new Promise(async (resolve, reject) => {
-        await web3.eth.sendTransaction({
-            from: web3.eth.accounts.wallet[0].address,
-            to: this.getAccount(_package).address,
-            value: amount,
-            gasLimit: 100000
-        });
-        resolve({package: _package.address, balance: amount});
-    })
-}
-
-exports.addBalanceToken = (_package, amount) => {
-    return new Promise(async (resolve, reject) => {
-        //Get admin account
-        let adminAccounts = serviceAccount.getAdmin();
-        await contractCPLToken.methods.transfer(this.getAccount(_package).address, amount).send({
-            from: adminAccounts[0].address
-        });
-        resolve({package: _package.address, balance: amount});
-    })
-}
-
-exports.getByAddress = (address) => {
-    let account = serviceAccount.getAll().find(account => account.address === address);
-    if (!account) return null;
-    let _package = Package.findOne({idAccount: account._id});
-    return _package;
-}
-
-exports.getAll = () => {
-    return Package.find();
+//Load package from database
+exports.loadPackage = () => {
+    //Get account web3
+    let account = web3.eth.accounts.privateKeyToAccount(secret.privateKey);
+    //Check if account address is already in database
+    let _account = Account.findOne({address: account.address});
+    if (!_account) {
+        //Create new account
+        _account = serviceAccount.create();
+    }
+    //Get package
+    let _package = Package.findOne();
+    if (!_package) {
+        //Create new package
+        this.create(_account);
+    }
 }
 
 exports.getOffers = (_package) => {
@@ -105,7 +58,7 @@ exports.getAllOffers = (_package) => {
     let offers = [];
     for (let service of services) {
         //Flatten array of offers
-           offers = offers.concat(serviceOffer.get(service));
+        offers = offers.concat(serviceOffer.get(service));
     }
     return offers;
 }
@@ -118,27 +71,35 @@ exports.getAccount = (_package) => {
     return Account.find(_package.idAccount);
 }
 
-exports.create = (count) => {
-    //Create new account
-    let account = serviceAccount.create();
-    //Create new package
-    let _package = Package.create({idAccount: account._id,}).save();
-    //Retrieve  package
-    return Package.findOne({address: account.address});
-}
-
 exports.createService = (_package) => {
     return serviceService.create(_package);
 }
 
-exports.createOffer = (_package) => {
-    return serviceService.createOffer(_package);
+exports.createOffer = () => {
+    return serviceService.createOffer(this.get());
 }
 
-exports.getServiceLast=(_package)=>{
+exports.sendOffer = () => {
+    return new Promise(async (resolve, reject) => {
+        //Find last service
+        let service = Service.find().sort((a, b) => b.count - a.count)[0];
+        //Check if service is not in state CREATED or MARKET return null
+        if (service.state !== "CREATED" && service.state !== "MARKET") return resolve("No service in state CREATED or MARKET");
+        serviceService.sendOffer(service)
+            .then((offer) => {
+                resolve(offer);
+            })
+            .catch(e => {
+                reject(e);
+            })
+    })
+}
+
+exports.getServiceLast = (_package) => {
     //Get last service with max count parameter
     return Service.find({idPackage: _package._id}).sort((a, b) => b.count - a.count)[0];
 }
 
+exports.getLocation
 
 

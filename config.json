@@ -2,65 +2,28 @@
   "db": "./db",
   "addressContractCPLToken": "0xBc0256e34B46C7Cf4FC4c30694f1D775e8A16185",
   "addressContractCapacityPool": "0x4d50493e1172e8C1D5D8993486dAcE37E43beCf9",
+  "addressContractCapacityRegistry": "0x32e2b6726b13eB5a5Fb6C467C8b20CCd01Bad69a",
   "web3_provider": {
     "sepolia": {
       "https": "https://eth-sepolia.g.alchemy.com/v2/auQkAS4fXuM5E1pYq-C7ppq-_vH4N-HM",
       "ws": "wss://eth-sepolia.g.alchemy.com/v2/auQkAS4fXuM5E1pYq-C7ppq-_vH4N-HM"
     }
   },
-  "package": {
-    "count": 5,
-    "balanceTokenInitial": 500,
-    "balanceEthInitial": 0.01,
-    "services": {
-      "duration": 300
-    },
-    "offer": {
-      "expiryDuration": 60,
-      "priceStartInterval": [
-        1,
-        10
-      ],
-      "priceChangeInterval": [
-        1,
-        5
-      ]
-    }
+  "service": {
+    "duration": 300
   },
-  "packages": [
-    {
-      "url": "http://localhost:5000"
-    },
-    {
-      "url": "http://localhost:5001"
-    },
-    {
-      "url": "http://localhost:5002"
-    },
-    {
-      "url": "http://localhost:5003"
-    },
-    {
-      "url": "http://localhost:5004"
-    }
-  ],
-  "warehouses": [
-    {
-      "url": "http://localhost:6000"
-    },
-    {
-      "url": "http://localhost:6001"
-    },
-    {
-      "url": "http://localhost:6002"
-    },
-    {
-      "url": "http://localhost:6003"
-    },
-    {
-      "url": "http://localhost:6004"
-    }
-  ],
+  "offer": {
+    "expiryDuration": 60,
+    "priceStartInterval": [
+      1,
+      10
+    ],
+    "priceChangeInterval": [
+      1,
+      5
+    ]
+  },
+  "port": 3000,
   "warehouseCentral": {
     "url": "http://localhost:7000"
   },

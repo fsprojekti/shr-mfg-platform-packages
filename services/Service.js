@@ -4,24 +4,83 @@ const Package = require("../models/Package");
 const serviceOffer = require("../services/Offer");
 const axios = require("axios");
 const config = require("../config.json");
+const servicePackage = require("./Package");
 
+exports.get = (query) => {
+    return Service.find(query);
+}
 
-exports.create = (_package) => {
+exports.getLast = (query) => {
+    let id=Service.find(query).sort((a, b) => b.count - a.count)[0]._id;
+    return Service.findOne({_id:id});
+}
+
+exports.create = () => {
     //Check if there is any service that is not in state DONE
-    let services = Service.find({idPackage: _package._id});
-    if(services.find(service => service.state !== "DONE")) return null;
+    let services = Service.find();
+    if (services.find(service => service.state !== "DONE")) return null;
     //Create new service
     return Service.create({
-        idPackage: _package._id,
-        count: Service.find({idPackage: _package._id}).length
+        count: Service.find().length
     }).save();
 }
 
-exports.createOffer = (service) => {
-    //Check if service is in state CREATED
-    if (service.state !== "CREATED") return null;
+exports.createOffer = (_package) => {
+    //Find last service
+    let service = Service.find().sort((a, b) => b.count - a.count)[0];
+    //Check if service is not in state CREATED or MARKET return null
+    if (service.state !== "CREATED" && service.state !== "MARKET") return null;
     //Create new offer
-    return serviceOffer.createOffer(service);
+    return serviceOffer.create(service);
+}
+
+exports.sendOffer = (service) => {
+    return new Promise(async (resolve, reject) => {
+        //Find last offer
+        let offer = Offer.find({idService: service._id}).sort((a, b) => b.count - a.count)[0];
+        //Check if offer is not in state CREATED
+        if (offer.state !== "CREATED") reject("No offer in state CREATED");
+        serviceOffer.HttpSend(offer)
+            .then((offer) => {
+                resolve(offer);
+            })
+            .catch(e => {
+                reject(e);
+            })
+    })
+}
+
+exports.transportIn = async (service) => {
+    try {
+        //Return null if service not in state DEAL
+        if (service.state !== "DEAL") return null;
+        //Find accepted offer
+        let offer = serviceOffer.get({idService: service._id, state: "ACCEPTED"})[0];
+        //Return null if no accepted offer found
+        if (!offer) return null;
+        //Find package
+        let _package = servicePackage.get();
+        //Return null if no package found
+        if (!_package) return null;
+
+        //Sent axios http request to transport service
+        axios.get(config.transportCentral.url + "/request", {
+            params: {
+                packageId: _package.address,
+                offerId: offer._id,
+                source: _package.loca,
+                target: 5
+            }
+        }).then((response) => {
+            resolve(response.data)
+        }).catch(e => {
+            reject(e)
+        })
+
+
+    }catch (e) {
+
+    }
 }
 
 

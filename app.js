@@ -1,25 +1,28 @@
 // Description: Main file of the application
+const config = require('./config');
+
 const express = require('express')
 const app = express()
 const port = 3000
 
 const emitter = require('./utils/events').eventEmitter;
 
-const adminRoutes = require('./api/routes/admin');
 const packageRoutes = require('./api/routes/package');
 const accountRoutes = require('./api/routes/accounts');
+const serviceRoutes = require('./api/routes/service');
+const serviceOffer = require('./api/routes/Offer');
 
-app.use('/admin', adminRoutes);
 app.use('/package', packageRoutes);
 app.use('/account', accountRoutes);
+app.use('/service', serviceRoutes);
+app.use('/offer', serviceOffer);
 
 //Load admin account
-const serviceAccount = require("./services/Account");
-serviceAccount.createAdmin();
-serviceAccount.loadAccountsToWallet();
+const servicePackage = require("./services/Package");
+servicePackage.loadPackage();
 
-app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
+app.listen(config.port, () => {
+    console.log(`Example app listening on port ${config.port}`)
 })
 
 //Subscribe to events
@@ -27,6 +30,16 @@ const events = require('./utils/events');
 emitter.on('offerExpired', (offer) => {
     //Log in yellow
     console.log("\x1b[33m%s\x1b[0m", "Offer expired: ", offer);
+})
+
+emitter.on('offerAccepted', (offer) => {
+    //Log in green
+    console.log("\x1b[32m%s\x1b[0m", "Offer accepted: ", offer);
+})
+
+emitter.on('offerRejected', (offer) => {
+    //Log in red
+    console.log("\x1b[31m%s\x1b[0m", "Offer rejected: ", offer);
 })
 
 
